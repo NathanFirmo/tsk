@@ -1,0 +1,10 @@
+task:
+  - name: Main
+    step:
+      - name: Echo
+        run:
+          - echo "Hello world"
+      - name: Serve
+        run: 
+          - cd ~/
+          - ls
