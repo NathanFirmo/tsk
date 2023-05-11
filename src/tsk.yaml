@@ -4,7 +4,7 @@ task:
       - name: Echo
         run:
           - echo "Hello world"
-      - name: Serve
+
+      - name: List files
         run: 
-          - cd ~/
           - ls
