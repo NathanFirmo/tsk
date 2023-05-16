@@ -18,35 +18,32 @@ void print_event(int state, int eventType) {
     case STATE_SECTION:
         log_debug("state: STATE_SECTION");
         break;
-    case STATE_TLIST:
-        log_debug("state: STATE_TLIST");
+    case STATE_TASK_LIST:
+        log_debug("state: STATE_TASK_LIST");
         break;
-    case STATE_TVALUES:
-        log_debug("state: STATE_TVALUES");
+    case STATE_TASK_ITEM:
+        log_debug("state: STATE_TASK_ITEM");
         break;
-    case STATE_TKEY:
-        log_debug("state: STATE_TKEY");
+    case STATE_TASK_ITEM_KEY:
+        log_debug("state: STATE_TASK_ITEM_KEY");
         break;
-    case STATE_TNAME:
-        log_debug("state: STATE_TNAME");
+    case STATE_STEP_LIST:
+        log_debug("state: STATE_STEP_LIST");
         break;
-    case STATE_SLIST:
-        log_debug("state: STATE_SLIST");
+    case STATE_STEP_ITEM:
+        log_debug("state: STATE_STEP_ITEM");
         break;
-    case STATE_SVALUES:
-        log_debug("state: STATE_SVALUES");
+    case STATE_STEP_ITEM_KEY:
+        log_debug("state: STATE_STEP_ITEM_KEY");
         break;
-    case STATE_SKEY:
-        log_debug("state: STATE_SKEY");
+    case STATE_STEP_NAME:
+        log_debug("state: STATE_STEP_NAME");
         break;
-    case STATE_SNAME:
-        log_debug("state: STATE_SNAME");
+    case STATE_COMMAND_LIST:
+        log_debug("state: STATE_COMMAND_LIST");
         break;
-    case STATE_SCOMMAND:
-        log_debug("state: STATE_SCOMMAND");
-        break;
-    case STATE_SCOMMAND_VALUES:
-        log_debug("state: STATE_SCOMMAND_VALUES");
+    case STATE_COMMAND_ITEM:
+        log_debug("state: STATE_COMMAND_ITEM");
         break;
     case STATE_STOP:
         log_debug("state: STATE_STOP");

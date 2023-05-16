@@ -65,15 +65,12 @@ int consume_event(struct parser_state *s, yaml_event_t *event) {
         case YAML_SCALAR_EVENT:
             value = (char *)event->data.scalar.value;
             if (strcmp(value, "task") == 0) {
-                s->state = STATE_TLIST;
+                s->state = STATE_TASK_LIST;
             } else {
                 fprintf(stderr, "[STATE_SECTION] Unexpected scalar: %s\n",
                         value);
                 return FAILURE;
             }
-            break;
-        case YAML_DOCUMENT_END_EVENT:
-            s->state = STATE_STREAM;
             break;
         case YAML_SEQUENCE_END_EVENT:
             s->state = STATE_STOP;
@@ -86,14 +83,18 @@ int consume_event(struct parser_state *s, yaml_event_t *event) {
         }
         break;
 
-    case STATE_TLIST:
+    case STATE_TASK_LIST:
         switch (event->type) {
-        case YAML_SEQUENCE_START_EVENT:
-            s->state = STATE_TVALUES;
+        case YAML_MAPPING_START_EVENT:
+            s->state = STATE_TASK_ITEM;
             break;
         case YAML_MAPPING_END_EVENT:
             s->state = STATE_SECTION;
             break;
+        case YAML_DOCUMENT_END_EVENT:
+            s->state = STATE_STREAM;
+            break;
+        
         default:
             fprintf(stderr, "[STATE_TLIST] Unexpected event %d in state %d.\n",
                     event->type, s->state);
@@ -101,13 +102,19 @@ int consume_event(struct parser_state *s, yaml_event_t *event) {
         }
         break;
 
-    case STATE_TVALUES:
+    case STATE_TASK_ITEM:
         switch (event->type) {
-        case YAML_MAPPING_START_EVENT:
-            s->state = STATE_TKEY;
+        case YAML_SCALAR_EVENT:
+            if (s->t.name) {
+                fprintf(stderr,
+                        "[STATE_TNAME] Warning: duplicate 'name' key.\n");
+                free(s->t.name);
+            }
+            s->t.name = bail_strdup((char *)event->data.scalar.value);
+            s->state = STATE_TASK_ITEM_KEY;
             break;
         case YAML_SEQUENCE_END_EVENT:
-            s->state = STATE_TLIST;
+            s->state = STATE_TASK_LIST;
             break;
         default:
             fprintf(stderr,
@@ -117,14 +124,15 @@ int consume_event(struct parser_state *s, yaml_event_t *event) {
         }
         break;
 
-    case STATE_TKEY:
+    case STATE_TASK_ITEM_KEY:
         switch (event->type) {
+        case YAML_MAPPING_START_EVENT:
+            s->state = STATE_TASK_ITEM_KEY;
+            break;
         case YAML_SCALAR_EVENT:
             value = (char *)event->data.scalar.value;
-            if (strcmp(value, "name") == 0) {
-                s->state = STATE_TNAME;
-            } else if (strcmp(value, "step") == 0) {
-                s->state = STATE_SLIST;
+            if (strcmp(value, "step") == 0) {
+                s->state = STATE_STEP_LIST;
             } else {
                 fprintf(stderr, "[STATE_TKEY] Unexpected key: %s\n", value);
                 return FAILURE;
@@ -135,7 +143,16 @@ int consume_event(struct parser_state *s, yaml_event_t *event) {
             free(s->t.name);
             memset(&s->t, 0, sizeof(s->t));
             s->slist = NULL;
-            s->state = STATE_TVALUES;
+            s->state = STATE_TASK_LIST;
+            break;
+
+        case YAML_DOCUMENT_END_EVENT:
+            add_task(&s->tlist, s->t.name, s->slist);
+            free(s->t.name);
+            memset(&s->t, 0, sizeof(s->t));
+            s->slist = NULL;
+            s->state = STATE_TASK_LIST;
+            s->state = STATE_STREAM;
             break;
         default:
             fprintf(stderr, "[STATE_TKEY] Unexpected event %d in state %d.\n",
@@ -144,29 +161,20 @@ int consume_event(struct parser_state *s, yaml_event_t *event) {
         }
         break;
 
-    case STATE_TNAME:
+    case STATE_STEP_LIST:
         switch (event->type) {
-        case YAML_SCALAR_EVENT:
-            if (s->t.name) {
-                fprintf(stderr,
-                        "[STATE_TNAME] Warning: duplicate 'name' key.\n");
-                free(s->t.name);
-            }
-            s->t.name = bail_strdup((char *)event->data.scalar.value);
-            s->state = STATE_TKEY;
+        case YAML_MAPPING_START_EVENT:
+            s->state = STATE_STEP_ITEM;
             break;
-        default:
-            fprintf(stderr, "[STATE_TNAME] Unexpected event %d in state %d.\n",
-                    event->type, s->state);
-            return FAILURE;
-        }
-        break;
 
-    case STATE_SLIST:
-        switch (event->type) {
         case YAML_SEQUENCE_START_EVENT:
-            s->state = STATE_SVALUES;
+            s->state = STATE_STEP_ITEM;
             break;
+
+        case YAML_MAPPING_END_EVENT:
+            s->state = STATE_TASK_ITEM_KEY;
+            break;
+        
         default:
             fprintf(stderr, "[STATE_SLIST] Unexpected event %d in state %d.\n",
                     event->type, s->state);
@@ -174,13 +182,25 @@ int consume_event(struct parser_state *s, yaml_event_t *event) {
         }
         break;
 
-    case STATE_SVALUES:
+    case STATE_STEP_ITEM:
         switch (event->type) {
         case YAML_MAPPING_START_EVENT:
-            s->state = STATE_SKEY;
+            s->state = STATE_STEP_ITEM_KEY;
             break;
         case YAML_SEQUENCE_END_EVENT:
-            s->state = STATE_TKEY;
+            add_step(&s->slist, s->s.name, s->clist);
+            free(s->s.name);
+            memset(&s->s, 0, sizeof(s->s));
+            s->clist = NULL;
+            s->state = STATE_STEP_ITEM_KEY;
+            break;
+
+        case YAML_MAPPING_END_EVENT:
+            add_step(&s->slist, s->s.name, s->clist);
+            free(s->s.name);
+            memset(&s->s, 0, sizeof(s->s));
+            s->clist = NULL;
+            s->state = STATE_STEP_LIST;
             break;
         default:
             fprintf(stderr,
@@ -190,26 +210,36 @@ int consume_event(struct parser_state *s, yaml_event_t *event) {
         }
         break;
 
-    case STATE_SKEY:
+    case STATE_STEP_ITEM_KEY:
         switch (event->type) {
         case YAML_SCALAR_EVENT:
             value = (char *)event->data.scalar.value;
             if (strcmp(value, "name") == 0) {
-                s->state = STATE_SNAME;
+                s->state = STATE_STEP_NAME;
             } else if (strcmp(value, "run") == 0) {
-                s->state = STATE_SCOMMAND;
+                s->state = STATE_COMMAND_LIST;
             } else {
                 fprintf(stderr, "[STATE_SKEY] Unexpected key: %s\n", value);
                 return FAILURE;
             }
             break;
-        case YAML_MAPPING_END_EVENT:
+
+        case YAML_MAPPING_START_EVENT:
             add_step(&s->slist, s->s.name, s->clist);
             free(s->s.name);
             memset(&s->s, 0, sizeof(s->s));
             s->clist = NULL;
-            s->state = STATE_SVALUES;
+            s->state = STATE_STEP_ITEM_KEY;
             break;
+
+        case YAML_MAPPING_END_EVENT:
+            s->state = STATE_STEP_ITEM;
+            break;
+
+        case YAML_SEQUENCE_END_EVENT:
+            s->state = STATE_STEP_ITEM;
+            break;
+
         default:
             fprintf(stderr, "[STATE_SKEY] Unexpected event %d in state %d.\n",
                     event->type, s->state);
@@ -217,7 +247,7 @@ int consume_event(struct parser_state *s, yaml_event_t *event) {
         }
         break;
 
-    case STATE_SNAME:
+    case STATE_STEP_NAME:
         switch (event->type) {
         case YAML_SCALAR_EVENT:
             if (s->s.name) {
@@ -226,7 +256,7 @@ int consume_event(struct parser_state *s, yaml_event_t *event) {
                 free(s->s.name);
             }
             s->s.name = bail_strdup((char *)event->data.scalar.value);
-            s->state = STATE_SKEY;
+            s->state = STATE_STEP_ITEM_KEY;
             break;
         default:
             fprintf(stderr, "[STATE_SNAME] Unexpected event %d in state %d.\n",
@@ -235,13 +265,16 @@ int consume_event(struct parser_state *s, yaml_event_t *event) {
         }
         break;
 
-    case STATE_SCOMMAND:
+    case STATE_COMMAND_LIST:
         switch (event->type) {
         case YAML_SEQUENCE_START_EVENT:
-            s->state = STATE_SCOMMAND_VALUES;
+            s->state = STATE_COMMAND_ITEM;
             break;
         case YAML_SEQUENCE_END_EVENT:
-            s->state = STATE_SKEY;
+            s->state = STATE_STEP_ITEM_KEY;
+            break;
+        case YAML_MAPPING_END_EVENT:
+            s->state = STATE_STEP_ITEM_KEY;
             break;
         default:
             fprintf(stderr,
@@ -251,7 +284,7 @@ int consume_event(struct parser_state *s, yaml_event_t *event) {
         }
         break;
 
-    case STATE_SCOMMAND_VALUES:
+    case STATE_COMMAND_ITEM:
         switch (event->type) {
         case YAML_SCALAR_EVENT:
             if (s->c.exec) {
@@ -263,10 +296,10 @@ int consume_event(struct parser_state *s, yaml_event_t *event) {
             add_command(&s->clist, s->c.exec);
             free(s->c.exec);
             memset(&s->c, 0, sizeof(s->c));
-            s->state = STATE_SCOMMAND_VALUES;
+            s->state = STATE_COMMAND_ITEM;
             break;
         case YAML_SEQUENCE_END_EVENT:
-            s->state = STATE_SKEY;
+            s->state = STATE_COMMAND_LIST;
             break;
         default:
             fprintf(

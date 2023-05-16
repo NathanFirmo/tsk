@@ -1,24 +1,23 @@
 /* Our example parser states. */
 enum state {
-    STATE_START,    /* start state */
-    STATE_STREAM,   /* start/end stream */
-    STATE_DOCUMENT, /* start/end document */
-    STATE_SECTION,  /* top level */
+    STATE_START,   
+    STATE_STREAM, 
+    STATE_DOCUMENT,
+    STATE_SECTION, 
 
-    STATE_TLIST,   /* fruit list */
-    STATE_TVALUES, /* fruit key-value pairs */
-    STATE_TKEY,    /* fruit key */
-    STATE_TNAME,   /* fruit name value */
+    STATE_TASK_LIST,  
+    STATE_TASK_ITEM, 
+    STATE_TASK_ITEM_KEY,   
 
-    STATE_SLIST,   /* steps list */
-    STATE_SVALUES, /* step key-value pairs */
-    STATE_SKEY,    /* step key */
-    STATE_SNAME,   /* strp name */
+    STATE_STEP_LIST,
+    STATE_STEP_ITEM, 
+    STATE_STEP_ITEM_KEY,
+    STATE_STEP_NAME,
 
-    STATE_SCOMMAND,        /* step command */
-    STATE_SCOMMAND_VALUES, /* step command values */
+    STATE_COMMAND_LIST,      
+    STATE_COMMAND_ITEM,
 
-    STATE_STOP /* end state */
+    STATE_STOP
 };
 
 /* yaml_* functions return 1 on success and 0 on failure. */

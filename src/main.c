@@ -79,7 +79,6 @@ int main(int argc, char *argv[]) {
             fclose(fp);
 
             for (struct command *c = s->commands; c; c = c->next) {
-                printf("\033[32mrun:\033[0m %s\n", c->exec);
                 FILE *fp;
 
                 fp = fopen("/tmp/script.sh", "a");
@@ -88,7 +87,9 @@ int main(int argc, char *argv[]) {
                     return 1;
                 }
 
+                fprintf(fp, "echo \033[32mrun:\033[0m %s\n", c->exec);
                 fprintf(fp, "%s", c->exec);
+                fprintf(fp, "\necho");
                 fprintf(fp, "\n");
                 fclose(fp);
             }

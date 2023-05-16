@@ -30,7 +30,7 @@ int handle_args(int argc, char *argv[]) {
             }
 
             fprintf(fp, "task:\n");
-            fprintf(fp, "  - name: Main\n");
+            fprintf(fp, "  main:\n");
             fprintf(fp, "    step:\n");
             fprintf(fp, "      - name: Echo\n");
             fprintf(fp, "        run:\n");

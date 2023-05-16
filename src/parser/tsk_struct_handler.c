@@ -2,15 +2,21 @@
 #include "yaml_structure.h"
 #include "../utils/memory_handler.h"
 #include "tsk_struct_handler.h"
+#include "../logging/logger.h"
+#include <stdio.h>
 
 void add_task(struct task **tasks, char *name, struct step *steps) {
-    // printf("Adding task %s\n", name);
-    /* Create task object. */
+    char *log_level = getenv("LOG_LEVEL");
+    if (log_level != NULL && strcmp(log_level, "DEBUG") == 0) {
+        log_debug("Adding task:");
+        log_debug(name);
+        printf("\n");
+    }
+
     struct task *t = bail_alloc(sizeof(*t));
     t->name = bail_strdup(name);
     t->steps = steps;
 
-    /* Append to list. */
     if (!*tasks) {
         *tasks = t;
     } else {
@@ -23,13 +29,17 @@ void add_task(struct task **tasks, char *name, struct step *steps) {
 }
 
 void add_step(struct step **steps, char *name, struct command *commands) {
-    // printf("Adding step %s\n", name);
-    /* Create step object. */
+    char *log_level = getenv("LOG_LEVEL");
+    if (log_level != NULL && strcmp(log_level, "DEBUG") == 0) {
+        log_debug("Adding step:");
+        log_debug(name);
+        printf("\n");
+    }
+
     struct step *s = bail_alloc(sizeof(*s));
     s->name = bail_strdup(name);
     s->commands = commands;
 
-    /* Append to list. */
     if (!*steps) {
         *steps = s;
     } else {
@@ -42,12 +52,16 @@ void add_step(struct step **steps, char *name, struct command *commands) {
 }
 
 void add_command(struct command **commands, char *exec) {
-    // printf("Adding command %s\n", exec);
-    /* Create command object. */
+    char *log_level = getenv("LOG_LEVEL");
+    if (log_level != NULL && strcmp(log_level, "DEBUG") == 0) {
+        log_debug("Adding command:");
+        log_debug(exec);
+        printf("\n");
+    }
+
     struct command *c = bail_alloc(sizeof(*c));
     c->exec = bail_strdup(exec);
 
-    /* Append to list. */
     if (!*commands) {
         *commands = c;
     } else {

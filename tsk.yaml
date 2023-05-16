@@ -1,8 +1,8 @@
 # This is a sample file. See more info in https://github.com/NathanFirmo/tsk
 
 task:
-  - name: Build
-    step:
+  build: 
+   step:
       - name: Create bin folder
         run:
           - mkdir -p bin
